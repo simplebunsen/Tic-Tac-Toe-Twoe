@@ -1,5 +1,6 @@
 package tictactoe;
 
+import javax.swing.plaf.synth.SynthOptionPaneUI;
 import java.util.Scanner;
 
 enum State{
@@ -8,97 +9,124 @@ enum State{
 
 public class Main {
 
-    //TODO Example 6
     public static final int SIZE = 3;
-    public static final int EMPTY = '_';
+    public static final char EMPTY = '_';
+    public static final char X = 'X';
+    public static final char O = 'O';
 
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-
         State state = State.PLAYING;
+        char currentMove = 'X';
 
-        System.out.print("Enter cells: ");
-        String initialInput = scanner.next();
+        char[][] playingField = updatePlayingField("_________");
 
-
-        char[][] playingField = updatePlayingField(initialInput);
-        while(true){
-            scanner.nextLine();
+        boolean flag = true;
+        while(flag){
             System.out.print("Enter the coordinates: ");
-            int hor = 0;
-            int vert = 0;
-            boolean hasBullshit = false;
-
-            if(scanner.hasNextInt()){
-                hor = scanner.nextInt();
-            }else{
-                hasBullshit = true;
-            }
-            if(scanner.hasNextInt()){
-                vert = scanner.nextInt();
-            }else{
-                hasBullshit = true;
-            }
-            if(hasBullshit){
-                System.out.println("You should enter numbers!");
-                hasBullshit = false;
-                continue;
-            }
+            int[] coords = processInput();
+            if(coords[0] == -1) continue;
 
             char[][] backup = playingField.clone();
-            playingField = updatePlayingField(playingField, hor, vert, 'X');
+            playingField = updatePlayingField(playingField, coords[0], coords[1], currentMove);
             if(playingField != null) {
                 printField(playingField);
-                break;
             }else{
                 //playing field is null => ERROR while updating
                 playingField = backup;
+                continue;
+            }
+
+            //check playing field before next input
+
+            state = getCurrentState(playingField);
+
+            switch (state) {
+                case PLAYING:
+                    if(currentMove == 'X') {
+                        currentMove ='O';
+                    }else currentMove = 'X';
+                    continue;
+                case DRAW:
+                    System.out.println("Draw");
+                    break;
+                case X_WINS:
+                    System.out.println("X wins");
+                    break;
+                case O_WINS:
+                    System.out.println("O wins");
+                    break;
+                case IMPOSSIBLE:
+                    //TODO: impossible is sloppy, see below
+                    System.out.println("I think that it is impossible, continuing anyways");
+                    continue;
+            }
+            flag = false;
+
+        }
+    }
+
+    private static State getCurrentState(char[][] playingField) {
+        State state = State.PLAYING;
+        char winType = getWinningLineType(playingField);
+
+        if (hasIllegalCounts(playingField)) {
+            state = State.IMPOSSIBLE;
+        } else {
+            switch (winType) {
+                case 'O':
+                    state = State.O_WINS;
+                    break;
+                case 'X':
+                    state = State.X_WINS;
+                    break;
+                case '?':
+                    if (!hasEmptySpots(playingField)) {
+                        state = State.DRAW;
+                    }
+                    break;
+                case '!':
+                    //TODO validate that we have lines of both teams and not 2 lines of one team
+                    /*
+                    ---------
+                    | ! X X |
+                    | X O O |
+                    | X O O |
+                    ---------
+                    If ! goes X, it returns impossible even though the move is a valid one.
+                     */
+                    state = State.IMPOSSIBLE;
+                    break;
             }
         }
+        return state;
+    }
 
+    private static int[] processInput(){
+        Scanner scanner = new Scanner(System.in);
 
-//        char winType = getWinningLineType(playingField);
-//
-//        if (hasIllegalCounts(playingField)) {
-//            state = State.IMPOSSIBLE;
-//        } else {
-//            switch (winType) {
-//                case 'O':
-//                    state = State.O_WINS;
-//                    break;
-//                case 'X':
-//                    state = State.X_WINS;
-//                    break;
-//                case '?':
-//                    if (!hasEmptySpots(playingField)) {
-//                        state = State.DRAW;
-//                    }
-//                    break;
-//                case '!':
-//                    //TODO validate that we have lines of both teams and not 2 lines of one team
-//                    //note: once this is a proper game, that problem should vanish, I think.
-//                    state = State.IMPOSSIBLE;
-//                    break;
-//            }
-//        }
-//
-//        switch (state) {
-//            case PLAYING:
-//                System.out.println("Game not finished");
-//                break;
-//            case DRAW:
-//                System.out.println("Draw");
-//                break;
-//            case X_WINS:
-//                System.out.println("X wins");
-//                break;
-//            case O_WINS:
-//                System.out.println("O wins");
-//                break;
-//            case IMPOSSIBLE:
-//                System.out.println("Impossible");
-//                break;
-//        }
+        int hor = 0;
+        int vert = 0;
+        boolean hasBullshit = false;
+
+        if(scanner.hasNextInt()){
+            hor = scanner.nextInt();
+            if(scanner.hasNextInt()){
+                vert = scanner.nextInt();
+            }else{
+                scanner.next();
+                hasBullshit = true;
+            }
+        }else{
+            scanner.next();
+            hasBullshit = true;
+        }
+
+        if(hasBullshit){
+            System.out.println("You should enter numbers!");
+            return new int[]{-1, -1};
+        }
+        return new int[]{hor, vert};
+
 
     }
 
@@ -111,7 +139,7 @@ public class Main {
                 if(i1 == 'X') xCount++;
             }
         }
-
+        //System.out.println("we have x times " + xCount + " and o times "+ oCount);
         if(Math.max(oCount, xCount) - Math.min(oCount, xCount) > 1){
             return true;
         }
@@ -174,6 +202,7 @@ public class Main {
         return false;
     }
 
+    //worse version of printField()
     private static void printArray(char[][] playingField) {
         for(char[] i : playingField){
             for(char i1 : i){
