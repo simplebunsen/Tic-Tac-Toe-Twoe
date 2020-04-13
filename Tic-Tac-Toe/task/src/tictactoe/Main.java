@@ -1,7 +1,5 @@
 package tictactoe;
 
-import jdk.swing.interop.SwingInterOpUtils;
-
 import java.util.Scanner;
 
 enum State{
@@ -20,51 +18,87 @@ public class Main {
         State state = State.PLAYING;
 
         System.out.print("Enter cells: ");
-        String input = scanner.next();
-        char[][] playingField = initPlayingField(input);
+        String initialInput = scanner.next();
 
-        char winType = getWinningLineType(playingField);
 
-        if (hasIllegalCounts(playingField)) {
-            state = State.IMPOSSIBLE;
-        } else {
-            switch (winType) {
-                case 'O':
-                    state = State.O_WINS;
-                    break;
-                case 'X':
-                    state = State.X_WINS;
-                    break;
-                case '?':
-                    if (!hasEmptySpots(playingField)) {
-                        state = State.DRAW;
-                    }
-                    break;
-                case '!':
-                    //TODO validate that we have lines of both teams and not 2 lines of one team
-                    //note: once this is a proper game, that problem should vanish, I think.
-                    state = State.IMPOSSIBLE;
-                    break;
+        char[][] playingField = updatePlayingField(initialInput);
+        while(true){
+            scanner.nextLine();
+            System.out.print("Enter the coordinates: ");
+            int hor = 0;
+            int vert = 0;
+            boolean hasBullshit = false;
+
+            if(scanner.hasNextInt()){
+                hor = scanner.nextInt();
+            }else{
+                hasBullshit = true;
+            }
+            if(scanner.hasNextInt()){
+                vert = scanner.nextInt();
+            }else{
+                hasBullshit = true;
+            }
+            if(hasBullshit){
+                System.out.println("You should enter numbers!");
+                hasBullshit = false;
+                continue;
+            }
+
+            char[][] backup = playingField.clone();
+            playingField = updatePlayingField(playingField, hor, vert, 'X');
+            if(playingField != null) {
+                printField(playingField);
+                break;
+            }else{
+                //playing field is null => ERROR while updating
+                playingField = backup;
             }
         }
 
-        switch (state) {
-            case PLAYING:
-                System.out.println("Game not finished");
-                break;
-            case DRAW:
-                System.out.println("Draw");
-                break;
-            case X_WINS:
-                System.out.println("X wins");
-                break;
-            case O_WINS:
-                System.out.println("O wins");
-                break;
-            case IMPOSSIBLE:
-                System.out.println("Impossible");
-                break;
-        }
+
+//        char winType = getWinningLineType(playingField);
+//
+//        if (hasIllegalCounts(playingField)) {
+//            state = State.IMPOSSIBLE;
+//        } else {
+//            switch (winType) {
+//                case 'O':
+//                    state = State.O_WINS;
+//                    break;
+//                case 'X':
+//                    state = State.X_WINS;
+//                    break;
+//                case '?':
+//                    if (!hasEmptySpots(playingField)) {
+//                        state = State.DRAW;
+//                    }
+//                    break;
+//                case '!':
+//                    //TODO validate that we have lines of both teams and not 2 lines of one team
+//                    //note: once this is a proper game, that problem should vanish, I think.
+//                    state = State.IMPOSSIBLE;
+//                    break;
+//            }
+//        }
+//
+//        switch (state) {
+//            case PLAYING:
+//                System.out.println("Game not finished");
+//                break;
+//            case DRAW:
+//                System.out.println("Draw");
+//                break;
+//            case X_WINS:
+//                System.out.println("X wins");
+//                break;
+//            case O_WINS:
+//                System.out.println("O wins");
+//                break;
+//            case IMPOSSIBLE:
+//                System.out.println("Impossible");
+//                break;
+//        }
 
     }
 
@@ -149,7 +183,8 @@ public class Main {
         }
     }
 
-    private static char[][] initPlayingField(String input) {
+    //initializing playing field by string
+    private static char[][] updatePlayingField(String input) {
         char[][] array = new char[3][3];
 
         printHorLine();
@@ -174,6 +209,47 @@ public class Main {
         printHorLine();
 
         return array;
+    }
+
+    //updating playing field by char and coords
+    private static char[][] updatePlayingField(char[][] field, int row, int col, char input){
+        //validate coords range
+        if (row > 3 || row < 1 || col > 3 || col < 1) {
+            System.out.println("Coordinates should be from 1 to 3!");
+            return null;
+        }
+        //quit being silly coordinates
+        //fixing them here since they got mixed up somewhere else and I'm to lazy to track down right now..
+        int hor = row - 1;
+        int vert = 4 - col - 1;
+        //validate coords not occupied
+        if (field[vert][hor] != '_'){
+            System.out.println("This cell is occupied! Choose another one!");
+            return null;
+        }
+        //replace empty space with input
+        field[vert][hor] = input;
+        return field;
+    }
+
+    private static void printField(char[][] playingField){
+        printHorLine();
+        for (int row = 1; row <= 3; row++) {
+            for (int col = 1; col <= 5; col++) {
+                switch (col) {
+                    case 1:
+                    case 5:
+                        System.out.print("| ");
+                        break;
+                    default:
+                        char c = playingField[row-1][col-2];
+                        System.out.print(c + " ");
+                        break;
+                }
+            }
+            System.out.println();
+        }
+        printHorLine();
     }
 
     public static void printHorLine(){
